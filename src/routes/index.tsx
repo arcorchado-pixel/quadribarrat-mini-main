@@ -124,6 +124,11 @@ function Index() {
     setRound(roundsWithMatches.length ? Math.max(...roundsWithMatches) : 1);
   }, [source, cat.id, cat.matches, catId]);
 
+  const maxRound = useMemo(
+    () => Math.max(cat.rounds, ...cat.matches.map((m) => m.round), 1),
+    [cat.rounds, cat.matches],
+  );
+
   const ql = q.trim().toLowerCase();
   const rows = useMemo(() => standings(cat), [cat]);
   const fr = rows.filter((r) => !ql || r.team.name.toLowerCase().includes(ql));
@@ -283,7 +288,7 @@ function Index() {
               </button>
               <span className="min-w-36 text-center font-display text-2xl font-bold uppercase">Jornada {round}</span>
               <button
-                disabled={round >= cat.rounds}
+                disabled={round >= maxRound}
                 onClick={() => setRound(round + 1)}
                 className="h-10 w-10 rounded-full bg-card font-bold text-card-foreground shadow disabled:opacity-30"
                 aria-label="Jornada següent"
@@ -480,6 +485,34 @@ function Leaders({ cat, ql }: { cat: Category; ql: string }) {
       </ol>
       {sel && <PlayerCard p={sel} onClose={() => setSel(null)} />}
     </>
+  );
+}
+
+function PlayerCard({ p, onClose }: { p: RankRow; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/50 backdrop-blur-sm sm:items-center" onClick={onClose}>
+      <div className="w-full max-w-md rounded-t-2xl bg-card p-5 shadow-xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b pb-3">
+          <div>
+            <h3 className="font-display text-2xl font-bold uppercase">{p.name}</h3>
+            <p className="text-xs text-muted-foreground">
+              Dorsal #{p.num} · {p.gp} PJ
+            </p>
+          </div>
+          <button onClick={onClose} aria-label="Tancar" className="text-lg">
+            ✕
+          </button>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 text-sm tabular-nums">
+          {LEAD_FILTERS.map(([key, label]) => (
+            <div key={key} className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-2">
+              <span className="text-muted-foreground">{label}</span>
+              <span className="font-display text-lg font-bold">{p[key]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -753,49 +786,17 @@ function RealStats({ rows, team }: { rows: EstRow[]; team: Team }) {
                   ))}
                 </tr>
               ))}
-            <tr className="border-t-2 border-foreground/30 bg-muted text-center font-bold">
-              <td className="sticky left-0 z-10 w-10 bg-muted py-2.5" />
-              <td className="sticky left-10 z-10 bg-muted px-1 text-left font-display uppercase">Total</td>
+            <tr className="border-t-2 border-foreground/30 bg-muted font-bold">
+              <td className="sticky left-0 z-10 bg-muted px-1 py-2.5" />
+              <td className="sticky left-10 z-10 bg-muted px-1 py-2.5 text-left font-display uppercase">Total</td>
               {EST_STATS.map(([key]) => (
-                <td key={key} className={`px-1.5 ${key === "puntos" ? "font-display text-lg text-success" : ""}`}>
+                <td key={key} className={`px-1.5 ${key === "puntos" ? "font-display text-lg font-bold text-success" : ""}`}>
                   {s(key)}
                 </td>
               ))}
             </tr>
           </tbody>
         </table>
-      </div>
-    </div>
-  );
-}
-
-function PlayerCard({ p, onClose }: { p: RankRow; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/50 backdrop-blur-sm sm:items-center" onClick={onClose}>
-      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-card sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="relative flex h-[45vh] max-h-[45vh] flex-col items-center justify-center gap-3 bg-header text-header-foreground">
-          <button onClick={onClose} aria-label="Tancar" className="absolute right-4 top-3 text-lg">
-            ✕
-          </button>
-          <div className="flex aspect-square h-3/5 items-center justify-center overflow-hidden rounded-full border-4 border-primary bg-header-foreground/10">
-            <span className="font-display text-7xl font-bold">{p.name.slice(0, 1)}</span>
-          </div>
-          <div className="text-center">
-            <p className="font-display text-3xl font-bold uppercase">
-              {p.name} <span className="text-primary">#{p.num}</span>
-            </p>
-            <p className="text-sm opacity-70">UE Sant Andreu · {p.gp} partits jugats</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
-          {LEAD_FILTERS.map(([key, label]) => (
-            <div key={key} className="rounded-lg border bg-muted/40 p-3 text-center">
-              <p className={`font-display text-3xl font-bold tabular-nums ${key === "pts" ? "text-success" : "text-primary"}`}>{p[key]}</p>
-              <p className="text-[11px] font-semibold uppercase text-muted-foreground">{label}</p>
-              <p className="text-[10px] text-muted-foreground">{(p[key] / Math.max(1, p.gp)).toFixed(1)} / partit</p>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
