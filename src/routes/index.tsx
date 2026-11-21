@@ -4,7 +4,6 @@ import { categories as mockCategories, CURRENT_ROUND, leaders, standings, type C
 import { useLiveCategories, isHiddenPlayer } from "@/lib/remote";
 import { supabase } from "@/lib/supabase";
 
-// Importaciones directas de los archivos PNG reales en src/assets/
 import courtBg from "@/assets/fenix_background.png";
 import uesaLogo from "@/assets/uesa_logo.png";
 import joventutLogo from "@/assets/joventut_logo.png";
@@ -120,12 +119,12 @@ function Index() {
   useEffect(() => {
     if (source !== "db") return;
     if (!categories.some((c) => c.id === catId)) setCatId(cat.id);
-    const roundsWithMatches = cat.matches.map((m) => m.round);
+    const roundsWithMatches = cat.matches.map((m) => Number(m.round) || 1);
     setRound(roundsWithMatches.length ? Math.max(...roundsWithMatches) : 1);
   }, [source, cat.id, cat.matches, catId]);
 
   const maxRound = useMemo(
-    () => Math.max(cat.rounds, ...cat.matches.map((m) => m.round), 1),
+    () => Math.max(Number(cat.rounds) || 1, ...cat.matches.map((m) => Number(m.round) || 1), 1),
     [cat.rounds, cat.matches],
   );
 
@@ -133,9 +132,8 @@ function Index() {
   const rows = useMemo(() => standings(cat), [cat]);
   const fr = rows.filter((r) => !ql || r.team.name.toLowerCase().includes(ql));
 
-  // Muestra todos los partidos de la jornada seleccionada, juegue o no la UE Sant Andreu
   const games = cat.matches.filter(
-    (m) => m.round === round && (!ql || m.home.name.toLowerCase().includes(ql) || m.away.name.toLowerCase().includes(ql)),
+    (m) => (Number(m.round) || 1) === round && (!ql || m.home.name.toLowerCase().includes(ql) || m.away.name.toLowerCase().includes(ql)),
   );
 
   const headRef = useRef<HTMLElement>(null);
