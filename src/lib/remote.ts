@@ -125,24 +125,36 @@ export function buildCategories(teams: TeamRow[], players: PlayerRow[], matches:
   }
 
   for (const m of matches) {
+    const targetCatName = m.Category && String(m.Category).trim() ? String(m.Category).trim() : "Mini Interterritorial · 1a Fase (26-27)";
+    const c = getCat(targetCatName);
+
     const ensure = (ref: unknown, catName: string) => {
       const f = findTeam(ref);
-      if (f) return f;
+      if (f) {
+        if (!c.teams.some((t) => t.id === f.id)) {
+          c.teams.push({
+            id: f.id,
+            name: f.name,
+            short: f.short,
+            color: f.color,
+            ...(f.logo ? { logo: f.logo } : {}),
+          });
+        }
+        return f;
+      }
       if (ref == null || String(ref).trim() === "") return undefined;
       const name = String(ref).trim();
       const tm = { id: `auto:${name}`, name, short: shortFor(name), color: colorFor(name), cat: catName };
       teamByName.set(norm(name), tm);
       teamById.set(tm.id, tm);
-      getCat(tm.cat).teams.push({ id: tm.id, name: tm.name, short: tm.short, color: tm.color });
+      c.teams.push({ id: tm.id, name: tm.name, short: tm.short, color: tm.color });
       return tm;
     };
 
-    const targetCatName = m.Category && String(m.Category).trim() ? String(m.Category).trim() : "Mini Interterritorial";
     const home = ensure(m["Home Team"], targetCatName);
     const away = ensure(m["Away Team"], targetCatName);
     if (!home || !away) continue;
 
-    const c = getCat(targetCatName);
     const hasScore = m["Home Score"] != null && m["Away Score"] != null;
     const status = mapStatus(m.Status, hasScore);
     const { date, time } = formatDateSafe(m["Date Time"]);

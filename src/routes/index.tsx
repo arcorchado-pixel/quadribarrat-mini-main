@@ -80,11 +80,14 @@ function StatusBadge({ s }: { s: Match["status"] }) {
 }
 
 const FAV_KEY = "cistella-fav";
+const LEAGUE_KEY = "cistella-league";
 
 function Index() {
   const [fav, setFav] = useState<string | null>(() => (typeof window === "undefined" ? null : localStorage.getItem(FAV_KEY)));
   const [catId, setCatId] = useState(() => {
     if (typeof window === "undefined") return "0";
+    const savedCat = localStorage.getItem(LEAGUE_KEY);
+    if (savedCat) return savedCat;
     const f = localStorage.getItem(FAV_KEY);
     if (f) {
       const c = mockCategories.find((c) => c.teams.some((t) => t.id === f));
@@ -111,17 +114,36 @@ function Index() {
   };
 
   const { categories, source } = useLiveCategories();
+
+  const orderedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => b.name.localeCompare(a.name, "ca"));
+  }, [categories]);
+
   const cat =
-    categories.find((c) => c.id === catId) ??
-    categories.find((c) => c.teams.some((t) => t.id === fav)) ??
-    categories[0]!;
+    orderedCategories.find((c) => c.id === catId) ??
+    orderedCategories.find((c) => c.teams.some((t) => t.id === fav)) ??
+    orderedCategories[0]!;
+
+  const handleLeagueChange = (nextId: string) => {
+    setCatId(nextId);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(LEAGUE_KEY, nextId);
+    }
+    const chosen = orderedCategories.find((c) => c.id === nextId);
+    if (chosen) {
+      const rList = chosen.matches.map((m) => Number(m.round) || 1);
+      setRound(rList.length ? Math.max(...rList) : 1);
+    }
+  };
 
   useEffect(() => {
     if (source !== "db") return;
-    if (!categories.some((c) => c.id === catId)) setCatId(cat.id);
-    const roundsWithMatches = cat.matches.map((m) => Number(m.round) || 1);
-    setRound(roundsWithMatches.length ? Math.max(...roundsWithMatches) : 1);
-  }, [source, cat.id, cat.matches, catId]);
+    if (!orderedCategories.some((c) => c.id === catId)) {
+      setCatId(cat.id);
+      const roundsWithMatches = cat.matches.map((m) => Number(m.round) || 1);
+      setRound(roundsWithMatches.length ? Math.max(...roundsWithMatches) : 1);
+    }
+  }, [source, orderedCategories, catId, cat.id, cat.matches]);
 
   const maxRound = useMemo(
     () => Math.max(Number(cat.rounds) || 1, ...cat.matches.map((m) => Number(m.round) || 1), 1),
@@ -202,9 +224,28 @@ function Index() {
         className={`mx-auto flex max-w-5xl flex-col justify-center px-3 py-5 sm:px-4 ${source === "loading" ? "invisible" : ""}`}
         style={{ minHeight: `calc(100vh - ${headH}px)` }}
       >
-        <h2 className="mx-auto mb-3 w-fit rounded-xl bg-header px-5 py-1.5 text-center font-display text-3xl font-bold uppercase tracking-wide text-gold shadow-lg drop-shadow-lg sm:text-4xl">
-          {cat.name}
-        </h2>
+        <div className="mx-auto mb-4 flex w-full max-w-xl flex-col items-center gap-2">
+          <h2 className="w-fit rounded-xl bg-header px-5 py-1.5 text-center font-display text-3xl font-bold uppercase tracking-wide text-gold shadow-lg drop-shadow-lg sm:text-4xl">
+            {cat.name}
+          </h2>
+
+          {orderedCategories.length > 1 && (
+            <label className="flex w-full max-w-md items-center justify-between gap-2 rounded-xl border bg-card/95 px-3 py-2 text-sm shadow-sm backdrop-blur-sm">
+              <span className="shrink-0 font-semibold text-muted-foreground">Triar lliga:</span>
+              <select
+                value={cat.id}
+                onChange={(e) => handleLeagueChange(e.target.value)}
+                className="min-w-0 flex-1 rounded-lg border bg-background px-2.5 py-1.5 font-semibold text-foreground focus:border-primary focus:outline-none"
+              >
+                {orderedCategories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
 
         {tab === "leaders" ? (
           <Leaders cat={cat} ql={ql} />
