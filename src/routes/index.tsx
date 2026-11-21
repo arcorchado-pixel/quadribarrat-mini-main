@@ -169,6 +169,10 @@ function Index() {
     return () => ro.disconnect();
   }, []);
 
+  const titleParts = cat.name.split(/\s*[·.]\s*/);
+  const mainTitle = titleParts[0] ?? cat.name;
+  const subTitle = titleParts.slice(1).join(" · ");
+
   return (
     <div className="relative min-h-screen">
       <div aria-hidden className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 overflow-hidden bg-header" style={{ top: headH }}>
@@ -225,8 +229,13 @@ function Index() {
         style={{ minHeight: `calc(100vh - ${headH}px)` }}
       >
         <div className="mx-auto mb-4 flex w-full max-w-xl flex-col items-center gap-2">
-          <h2 className="w-fit rounded-xl bg-header px-5 py-1.5 text-center font-display text-3xl font-bold uppercase tracking-wide text-gold shadow-lg drop-shadow-lg sm:text-4xl">
-            {cat.name}
+          <h2 className="flex w-fit flex-col items-center rounded-xl bg-header px-5 py-2 text-center font-display uppercase tracking-wide text-gold shadow-lg drop-shadow-lg">
+            <span className="text-2xl font-bold leading-tight sm:text-4xl">{mainTitle}</span>
+            {subTitle && (
+              <span className="mt-0.5 text-sm font-semibold tracking-wider text-header-foreground/85 sm:text-base">
+                {subTitle}
+              </span>
+            )}
           </h2>
 
           {orderedCategories.length > 1 && (
